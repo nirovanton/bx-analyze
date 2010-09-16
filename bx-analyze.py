@@ -27,6 +27,7 @@ class Bxanalysis:
         self._tolerance = False
         self._row = ""
         self._width = ""
+        selp._slide = ""
         self._verbose = False
         self._Xi = False
         self._Xf = False
@@ -41,6 +42,7 @@ class Bxanalysis:
         self._tolerance = variables.tolerance
         self._row = variables.row
         self._width = variables.width
+        self._slide = variables.slide
         self._verbose = variables.verbose
         self._Xi = variables.Xi
         self._Xf = variables.Xf
@@ -74,7 +76,7 @@ class Bxanalysis:
         parser.add_option('--width', '-w', default='2:9',
             help=''.join(width_help_list))
 
-        verbose_help_list  = [
+        verbose_help_list = [
             "There are 2 levels of verbosity:  Low and High.",
             "Low: prints out the average wavelength / line.",
             "High: prints out every wrinkle match / line.",
@@ -82,6 +84,18 @@ class Bxanalysis:
         parser.add_option('--verbose', '-v', default=False,
             help=''.join(verbose_help_list))
         
+        slide_help_list = [
+            "This option allows you to specify 3 settings ",
+            "regarding the image you are scanning. And they are: ",
+            "width:tolerance:delta_tolerance an example: ",
+            "  -s 10:44:3   meaning that a span of pixels that " ,
+            "is 10 pixels long with an intensity of 44 +- 3 will ",
+            "be considered slide, not sample, and wont be ",
+            "considered in the final approximations.",
+            ]
+        parser.add_option('--slide', '-s', default='10:40:4',
+            help=''.join(slide_help_list))
+
         position_help_list = [
             "You can specify both a starting position and an ",
             "ending position as the range over which the program ",
