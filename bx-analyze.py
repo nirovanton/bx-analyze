@@ -134,7 +134,8 @@ if __name__ == "__main__":
     width, height, iterable, something_else = png_file.read()
     image_array = numpy.vstack(itertools.imap(numpy.uint8, iterable))
     w_min,w_max = app._width.split(":")
-
+    if app._slide != 'middle':
+        span,slide_tol,slide_tol_range = app._slide.split(":")
 
     if (app._row != 'all') and (app._Yi != False or app._Yf != False):
         print "Error: You cannot specify a single row [ -r ] and a range [ Yi or Yf ] fix one."
@@ -216,11 +217,17 @@ if __name__ == "__main__":
 
     print "=========================================================="
     print "Image File:\t\t\t"+app._image
-    print "Starting position (x,y):\t("+str(x_start)+","+str(y_start)+")"
-    print "Ending position (x,y):\t\t("+str(x_stop)+","+str(y_stop)+")"
-    print "Tolerance:\t\t\t"+str(app._tolerance)
-    print "Minimum wrinkle thickness:\t"+w_min
-    print "Maximum wrinkle thickness:\t"+w_max
-    print "Approximated Wavelength\t\t"+str(lambda_sum/len(lambda_array))
+    if app._slide == 'middle':
+        print "Scan Type:\t\t\t"+app._slide
+    else:
+        print "scan Type:\t\t\tEdge"
+    print "Starting position (x,y):\t("+str(x_start)+","+str(y_start)+") pixels"
+    print "Ending position (x,y):\t\t("+str(x_stop)+","+str(y_stop)+") pixels"
+    print "Sample Tolerance:\t\t"+str(app._tolerance)
+    if app._slide != 'middle':
+        print "Slide tolerance range:\t\t"+str(int(slide_tol)-int(slide_tol_range))+ " to "+str(int(slide_tol)+int(slide_tol_range))    
+        print "Minimum slide span:\t\t"+span+" pixels"
+    print "Wrinkle thickness range:\t"+w_min+" to "+w_max+" pixels"
+    print "Approximated Wavelength\t\t"+str(lambda_sum/len(lambda_array))+" microns"
     print "=========================================================="
 
