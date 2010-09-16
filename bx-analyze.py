@@ -27,7 +27,7 @@ class Bxanalysis:
         self._tolerance = False
         self._row = ""
         self._width = ""
-        selp._slide = ""
+        self._slide = ""
         self._verbose = False
         self._Xi = False
         self._Xf = False
@@ -89,11 +89,11 @@ class Bxanalysis:
             "regarding the image you are scanning. And they are: ",
             "width:tolerance:delta_tolerance an example: ",
             "  -s 10:44:3   meaning that a span of pixels that " ,
-            "is 10 pixels long with an intensity of 44 +- 3 will ",
+            "is 10 pixels long with an intensity of 44 +/- 3 will ",
             "be considered slide, not sample, and wont be ",
             "considered in the final approximations.",
             ]
-        parser.add_option('--slide', '-s', default='10:40:4',
+        parser.add_option('--slide', '-s', default='middle',
             help=''.join(slide_help_list))
 
         position_help_list = [
@@ -103,7 +103,7 @@ class Bxanalysis:
             "I.E: analizing row 34 from x=400 to 1000",
             "   -r 34 -s 400 -e 1000",
             ]
-        parser.add_option('--Xi', '-s', default=False,
+        parser.add_option('--Xi', '-x', default=False,
             help=''.join(position_help_list))
         parser.add_option('--Xf','-e', default=False,
             help='')
