@@ -146,19 +146,19 @@ if __name__ == "__main__":
     if ((app._Xf != False) and (app._Xi != False) and (int(app._Xi) > int(app._Xf))):
         print "Error: Your Xf is less than Xi, switch them around please."
         sys.exit()
-    if (app._Xi < 0 or app._Xi> width):
+    if (int(app._Xi) < 0 or int(app._Xi) > width):
         print "Error: Specified coordinates are out of pixel range!"
         sys.exit()
-    if (app._Xf< 0 or app._Xf > width):
+    if (int(app._Xf) < 0 or int(app._Xf) > width):
         print "Error: Specified coordinates are out of pixel range!"
         sys.exit()
-    if (app._Yi < 0 or app._Yi > height):
+    if (int(app._Yi) < 0 or int(app._Yi) > height):
         print "Error: Specified coordinates are out of pixel range!"
         sys.exit()
-    if (app._Yf < 0 or app._Yf > height):
+    if (int(app._Yf) < 0 or int(app._Yf) > height):
         print "Error: Specified coordinates are out of pixel range!"
         sys.exit()
-    if (w_min > w_max):
+    if (int(w_min) > w_max):
         print "Error: Your width quantities are bass-ackwards."
         sys.exit()
 
@@ -192,7 +192,30 @@ if __name__ == "__main__":
     y_index = y_start
     while y_index <= y_stop:
         x_index = x_start
+        slide_pixel_count = 0
+        slide_Xi = 0
+        row_total = 0
+        slide_Xf = 0
         while x_index < x_stop:
+
+
+            if (app._slide != 'middle') and (image_array[y_index-1][x_index] >=  int(slide_tol)-int(slide_tol_range)) and (image_array[y_index-1][x_index] <=  int(slide_tol)+int(slide_tol_range)):
+                if slide_pixel_count == 0:
+                    slide_Xi = x_index
+                slide_pixel_count += 1
+                print "\t",x_index,"{",image_array[y_index-1][x_index],"}",slide_pixel_count
+                if x_index == x_stop-1:
+                    print y_index,"\tSPAN:",slide_Xi,"to",x_stop," - ",slide_pixel_count
+                    row_total += slide_pixel_count
+            else:
+                if (app._slide != 'middle') and (slide_pixel_count >= int(span)):
+                    slide_Xf = x_index
+                    print y_index,"\tSPAN:",slide_Xi,"to",slide_Xf," - ",slide_pixel_count
+                    row_total += slide_pixel_count
+                slide_pixel_count = 0
+                
+            
+            
             if image_array[y_index-1][x_index] <= int(app._tolerance):
                 success += 1
             else:
@@ -203,6 +226,9 @@ if __name__ == "__main__":
                 success = 0
             x_index += 1
         
+        if app._slide != 'middle':
+            print row_total, "pixels will be subtracted from delta_x to account for the slide"
+
         if wrinkle_count >= 1:
             wavelength = (delta_x*pixel_ratio)/wrinkle_count
             lambda_array.append(wavelength)
