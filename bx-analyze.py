@@ -163,7 +163,6 @@ if __name__ == "__main__":
         sys.exit()
 
 
-
     #Establishing the Y boundaries
     if app._row != 'all':
         y_start = int(app._row)
@@ -197,8 +196,7 @@ if __name__ == "__main__":
         row_total = 0
         slide_Xf = 0
         while x_index < x_stop:
-
-
+            """
             if (app._slide != 'middle') and (image_array[y_index-1][x_index] >=  int(slide_tol)-int(slide_tol_range)) and (image_array[y_index-1][x_index] <=  int(slide_tol)+int(slide_tol_range)):
                 if slide_pixel_count == 0:
                     slide_Xi = x_index
@@ -213,9 +211,7 @@ if __name__ == "__main__":
                     print y_index,"\tSPAN:",slide_Xi,"to",slide_Xf," - ",slide_pixel_count
                     row_total += slide_pixel_count
                 slide_pixel_count = 0
-                
-            
-            
+            """                
             if image_array[y_index-1][x_index] <= int(app._tolerance):
                 success += 1
             else:
@@ -226,8 +222,8 @@ if __name__ == "__main__":
                 success = 0
             x_index += 1
         
-        if app._slide != 'middle':
-            print row_total, "pixels will be subtracted from delta_x to account for the slide"
+#       if app._slide != 'middle':
+#           print row_total, "pixels will be subtracted from delta_x to account for the slide"
 
         if wrinkle_count >= 1:
             wavelength = (delta_x*pixel_ratio)/wrinkle_count
