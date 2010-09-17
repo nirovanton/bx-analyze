@@ -85,11 +85,11 @@ class Bxanalysis:
             help=''.join(verbose_help_list))
         
         slide_help_list = [
-            "This option allows you to specify 2 settings ",
+            "This option allows you to specify 3 settings ",
             "regarding the image you are scanning. And they are: ",
-            "width:tolerance: ",
-            "  -s 10:44  meaning that a span of pixels that " ,
-            "is 10 pixels long with an intensity less than 44 will ",
+            "width:tolerance:delta_tolerance an example: ",
+            "  -s 10:44:3   meaning that a span of pixels that " ,
+            "is 10 pixels long with an intensity of 44 +/- 3 will ",
             "be considered slide, not sample, and wont be ",
             "considered in the final approximations.",
             ]
@@ -135,7 +135,7 @@ if __name__ == "__main__":
     image_array = numpy.vstack(itertools.imap(numpy.uint8, iterable))
     w_min,w_max = app._width.split(":")
     if app._slide != 'middle':
-        span,slide_tol = app._slide.split(":")
+        span,slide_tol,slide_tol_range = app._slide.split(":")
 
     if (app._row != 'all') and (app._Yi != False or app._Yf != False):
         print "Error: You cannot specify a single row [ -r ] and a range [ Yi or Yf ] fix one."
@@ -162,6 +162,8 @@ if __name__ == "__main__":
         print "Error: Your width quantities are bass-ackwards."
         sys.exit()
 
+
+
     #Establishing the Y boundaries
     if app._row != 'all':
         y_start = int(app._row)
@@ -172,7 +174,7 @@ if __name__ == "__main__":
         else:
             y_start = int(app._Yi)
         if app._Yf == False:
-            y_stop = height-1
+            y_stop = height
         else: 
             y_stop = int(app._Yf)+1
     
@@ -182,7 +184,7 @@ if __name__ == "__main__":
     else:
         x_start = int(app._Xi)
     if app._Xf == False:
-        x_stop = width-1
+        x_stop = width
     else:
         x_stop = int(app._Xf)
     delta_x = x_stop-x_start
@@ -196,37 +198,37 @@ if __name__ == "__main__":
         slide_Xf = 0
         while x_index < x_stop:
 
-            if (app._slide != 'middle') and (image_array[y_index][x_index] <= int(slide_tol)):
+
+            if (app._slide != 'middle') and (image_array[y_index-1][x_index] >=  int(slide_tol)-int(slide_tol_range)) and (image_array[y_index-1][x_index] <=  int(slide_tol)+int(slide_tol_range)):
                 if slide_pixel_count == 0:
                     slide_Xi = x_index
                 slide_pixel_count += 1
-                if app._verbose == 'slide':
-                    print "\t",x_index,"{",image_array[y_index][x_index],"}",slide_pixel_count
+                print "\t",x_index,"{",image_array[y_index-1][x_index],"}",slide_pixel_count
                 if x_index == x_stop-1:
-                    if app._verbose == 'slide':
-                        print y_index,"\tSPAN:",slide_Xi,"to",x_stop," - ",slide_pixel_count
+                    print y_index,"\tSPAN:",slide_Xi,"to",x_stop," - ",slide_pixel_count
                     row_total += slide_pixel_count
             else:
                 if (app._slide != 'middle') and (slide_pixel_count >= int(span)):
                     slide_Xf = x_index
-                    if app._verbose == 'slide':
-                        print y_index,"\tSPAN:",slide_Xi,"to",slide_Xf," - ",slide_pixel_count
+                    print y_index,"\tSPAN:",slide_Xi,"to",slide_Xf," - ",slide_pixel_count
                     row_total += slide_pixel_count
                 slide_pixel_count = 0
-           
-            if image_array[y_index][x_index] <= int(app._tolerance):
+                
+            
+            
+            if image_array[y_index-1][x_index] <= int(app._tolerance):
                 success += 1
             else:
                 if (success >= int(w_min) and success < int(w_max)):
                     wrinkle_count += 1
                     if app._verbose == 'high':
-                        print "("+str(x_index-success)+","+ str(y_index)+")->("+ str(x_index)+","+ str(y_index)+")"
+                        print "("+str(x_index-success)+","+ str(y_index)+")->("+ str(x_index-1)+","+ str(y_index)+")"
                 success = 0
             x_index += 1
-
-        if app._slide != 'middle':
-            print "Row: ",y_index,"::",row_total, "pixels will be subtracted from delta_x to account for the slide"
         
+        if app._slide != 'middle':
+            print row_total, "pixels will be subtracted from delta_x to account for the slide"
+
         if wrinkle_count >= 1:
             wavelength = (delta_x*pixel_ratio)/wrinkle_count
             lambda_array.append(wavelength)
@@ -249,7 +251,7 @@ if __name__ == "__main__":
     print "Ending position (x,y):\t\t("+str(x_stop)+","+str(y_stop)+") pixels"
     print "Sample Tolerance:\t\t"+str(app._tolerance)
     if app._slide != 'middle':
-        print "Slide tolerance:\t\t"+str(int(slide_tol))
+        print "Slide tolerance range:\t\t"+str(int(slide_tol)-int(slide_tol_range))+ " to "+str(int(slide_tol)+int(slide_tol_range))    
         print "Minimum slide span:\t\t"+span+" pixels"
     print "Wrinkle thickness range:\t"+w_min+" to "+w_max+" pixels"
     print "Approximated Wavelength\t\t"+str(lambda_sum/len(lambda_array))+" microns"
