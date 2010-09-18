@@ -189,7 +189,6 @@ if __name__ == "__main__":
     delta_x = x_stop-x_start
 
     y_index = y_start
-
     while y_index <= y_stop:
         x_index = x_start
         slide_pixel_count = 0
@@ -198,12 +197,15 @@ if __name__ == "__main__":
         slide_Xf = 0
         row_array=[]
         while x_index < x_stop:
+            row_array.append(int(image_array[y_index][x_index]))
+            x_index += 1
+
             """
-            if (app._slide != 'middle') and (image_array[y_index-1][x_index] >=  int(slide_tol)-int(slide_tol_range)) and (image_array[y_index-1][x_index] <=  int(slide_tol)+int(slide_tol_range)):
+            if (app._slide != 'middle') and (image_array[y_index][x_index] >=  int(slide_tol)-int(slide_tol_range)) and (image_array[y_index][x_index] <=  int(slide_tol)+int(slide_tol_range)):
                 if slide_pixel_count == 0:
                     slide_Xi = x_index
                 slide_pixel_count += 1
-                print "\t",x_index,"{",image_array[y_index-1][x_index],"}",slide_pixel_count
+                print "\t",x_index,"{",image_array[y_index][x_index],"}",slide_pixel_count
                 if x_index == x_stop-1:
                     print y_index,"\tSPAN:",slide_Xi,"to",x_stop," - ",slide_pixel_count
                     row_total += slide_pixel_count
@@ -213,8 +215,8 @@ if __name__ == "__main__":
                     print y_index,"\tSPAN:",slide_Xi,"to",slide_Xf," - ",slide_pixel_count
                     row_total += slide_pixel_count
                 slide_pixel_count = 0
-                            
-            if image_array[y_index-1][x_index] <= int(app._tolerance):
+                     
+            if image_array[y_index][x_index] <= int(app._tolerance):
                 success += 1
             else:
                 if (success >= int(w_min) and success < int(w_max)):
@@ -222,11 +224,58 @@ if __name__ == "__main__":
                     if app._verbose == 'high':
                         print "("+str(x_index-success)+","+ str(y_index)+")->("+ str(x_index-1)+","+ str(y_index)+")"
                 success = 0
-            """
-            x_index += 1
+            """      
+
+        fourier = numpy.fft.rfft(row_array)
+        mask_array = []
+        mask_filter_size = 20 #app._mask  -m --mask
+        mask_count = 0
+        while mask_count < len(fourier):
+            if mask_count < mask_filter_size:
+                mask_array.append(0)
+            else:
+                mask_array.append(1)
+            mask_count +=1
+        final_product = numpy.fft.irfft(fourier*mask_array)
+       
+        counter = 0
+        while counter < len(final_product):
+            print str(counter)+":"+str(row_array[counter])+":"+str(final_product[counter])
+            counter += 1
         
-#       if app._slide != 'middle':
-#           print row_total, "pixels will be subtracted from delta_x to account for the slide"
+        y_index += 1
+
+        """ THE FILE INPUT
+        mask_array = []
+        mask_file = open('dummy.txt','r')
+        mask_file_lines = mask_file.read().splitlines()
+        for number in mask_file_lines:
+            mask_array.append(int(number.strip()))
+        mask_file.close()
+        #populating the data from file
+        data_array = []
+        data_file = open('dummy2_mod.txt','r')
+        data_file_lines = data_file.read().splitlines()
+        for datum in data_file_lines:
+            data_array.append(float(datum.strip()))
+        data_file.close()
+        #performing the FFT using RFFT and IRFFT
+        fft_data_array = numpy.fft.rfft(data_array)
+        index = 0
+        combined_array = []
+        while index < len(mask_array):
+            combined_array.append(data_array[index]*mask_array[index])
+            index += 1
+        filter_array = numpy.fft.irfft(combined_array)
+        for line in filter_array:
+            print line
+        """
+
+
+
+        """
+        if app._slide != 'middle':
+            print row_total, "pixels will be subtracted from delta_x to account for the slide"
 
         if wrinkle_count >= 1:
             wavelength = (delta_x*pixel_ratio)/wrinkle_count
@@ -255,4 +304,4 @@ if __name__ == "__main__":
     print "Wrinkle thickness range:\t"+w_min+" to "+w_max+" pixels"
     print "Approximated Wavelength\t\t"+str(lambda_sum/len(lambda_array))+" microns"
     print "=========================================================="
-
+    """
