@@ -173,9 +173,9 @@ if __name__ == "__main__":
         else:
             y_start = int(app._Yi)
         if app._Yf == False:
-            y_stop = height
+            y_stop = height-1
         else: 
-            y_stop = int(app._Yf)+1
+            y_stop = int(app._Yf)
     
     #Establishing the X boundaries
     if app._Xi == False:
@@ -189,12 +189,14 @@ if __name__ == "__main__":
     delta_x = x_stop-x_start
 
     y_index = y_start
+
     while y_index <= y_stop:
         x_index = x_start
         slide_pixel_count = 0
         slide_Xi = 0
         row_total = 0
         slide_Xf = 0
+        row_array=[]
         while x_index < x_stop:
             """
             if (app._slide != 'middle') and (image_array[y_index-1][x_index] >=  int(slide_tol)-int(slide_tol_range)) and (image_array[y_index-1][x_index] <=  int(slide_tol)+int(slide_tol_range)):
@@ -211,7 +213,7 @@ if __name__ == "__main__":
                     print y_index,"\tSPAN:",slide_Xi,"to",slide_Xf," - ",slide_pixel_count
                     row_total += slide_pixel_count
                 slide_pixel_count = 0
-            """                
+                            
             if image_array[y_index-1][x_index] <= int(app._tolerance):
                 success += 1
             else:
@@ -220,6 +222,7 @@ if __name__ == "__main__":
                     if app._verbose == 'high':
                         print "("+str(x_index-success)+","+ str(y_index)+")->("+ str(x_index-1)+","+ str(y_index)+")"
                 success = 0
+            """
             x_index += 1
         
 #       if app._slide != 'middle':
