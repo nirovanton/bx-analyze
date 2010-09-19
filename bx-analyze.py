@@ -122,7 +122,15 @@ class Bxanalysis:
         parser.add_option('--image', '-i', default='',
             help=''.join(image_help_list))
 
-        parser.add_option('--mask','-m',default = 20, help='') 
+        mask_help_list = [
+            "The mask option specifies how many consecutive 0's "
+            "are appended to the begining of the mask array. "
+            "These are used  to filter out the longer wavelegths "
+            "from the fourier transforms that are applied to "
+            "each row."
+            ]
+        parser.add_option('--mask','-m',default = 10,
+            help=''.join(masl_help_list))
 
         return parser.parse_args()
 
