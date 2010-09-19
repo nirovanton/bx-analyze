@@ -130,7 +130,7 @@ class Bxanalysis:
             "each row."
             ]
         parser.add_option('--mask','-m',default = 10,
-            help=''.join(masl_help_list))
+            help=''.join(mask_help_list))
 
         return parser.parse_args()
 
@@ -209,9 +209,7 @@ if __name__ == "__main__":
         slide_Xf = 0
         row_array=[]
         while x_index < x_stop:
-            row_array.append(int(image_array[y_index][x_index]))
-            x_index += 1
-            """
+            """  SLIDE DETECTION CODE
             if (app._slide != 'middle') and (image_array[y_index][x_index] >=  int(slide_tol)-int(slide_tol_range)) and (image_array[y_index][x_index] <=  int(slide_tol)+int(slide_tol_range)):
                 if slide_pixel_count == 0:
                     slide_Xi = x_index
@@ -226,17 +224,22 @@ if __name__ == "__main__":
                     print y_index,"\tSPAN:",slide_Xi,"to",slide_Xf," - ",slide_pixel_count
                     row_total += slide_pixel_count
                 slide_pixel_count = 0
-                     
-            if image_array[y_index][x_index] <= int(app._tolerance):
-                success += 1
-            else:
-                if (success >= int(w_min) and success < int(w_max)):
-                    wrinkle_count += 1
-                    if app._verbose == 'high':
-                        print "("+str(x_index-success)+","+ str(y_index)+")->("+ str(x_index-1)+","+ str(y_index)+")"
-                success = 0
-            """      
+            """
+            
+            row_array.append(int(image_array[y_index][x_index]))
+            x_index += 1
+
+
+#            if image_array[y_index][x_index] <= int(app._tolerance):
+#                success += 1
+#            else:
+#                if (success >= int(w_min) and success < int(w_max)):
+#                    wrinkle_count += 1
+#                    if app._verbose == 'high':
+#                        print "("+str(x_index-success)+","+ str(y_index)+")->("+ str(x_index-1)+","+ str(y_index)+")"
+#                success = 0
         
+              
         fourier = numpy.fft.rfft(row_array)
         mask_array = []
         mask_filter_size = int(app._mask)
@@ -248,14 +251,42 @@ if __name__ == "__main__":
                 mask_array.append(1)
             mask_count +=1
         final_product = numpy.fft.irfft(fourier*mask_array)
+        #for line
+        test = {}
+        
+        dict_index = x_start
+        for line in final_product:
+            test[dict_index] = line
+            dict_index += 1
+        
+        for bla in test.keys():
+            print test[bla]
        
-        counter = 0
-        while counter < len(final_product):
-            print str(counter)+":"+str(row_array[counter])+":"+str(final_product[counter])
-            counter += 1
         
 
+#            if image_array[y_index][x_index] <= int(app._tolerance):
+#                success += 1
+#            else:
+#                if (success >= int(w_min) and success < int(w_max)):
+#                    wrinkle_count += 1
+#                    if app._verbose == 'high':
+#                        print "("+str(x_index-success)+","+ str(y_index)+")->("+ str(x_i    ndex-1)+","+ str(y_index)+")"
+#                success = 0
+
+
+
+
+        
+        """ FFT PRINTED DATA
+        counter = 0
+        image_indexer = x_start
+        while counter < len(final_product):
+            print str(image_indexer)+":"+str(row_array[counter])+":"+str(final_product[counter])
+            counter += 1
+            image_indexer += 1
         """
+
+        """  FILE ARRAY - TEMP
         mask_array = []
         mask_file = open('dummy.txt','r')
         mask_file_lines = mask_file.read().splitlines()
@@ -284,7 +315,7 @@ if __name__ == "__main__":
 
 
         y_index += 1
-        """
+        """     
         if app._slide != 'middle':
             print row_total, "pixels will be subtracted from delta_x to account for the slide"
 
