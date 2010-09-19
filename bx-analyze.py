@@ -28,6 +28,7 @@ class Bxanalysis:
         self._row = ""
         self._width = ""
         self._slide = ""
+        self._mask = 0
         self._verbose = False
         self._Xi = False
         self._Xf = False
@@ -45,6 +46,7 @@ class Bxanalysis:
         self._slide = variables.slide
         self._verbose = variables.verbose
         self._Xi = variables.Xi
+        self._mask = variables.mask
         self._Xf = variables.Xf
         self._Yi = variables.Yi
         self._Yf = variables.Yf
@@ -111,7 +113,7 @@ class Bxanalysis:
              help='')
         parser.add_option('--Yf','-b', default=False,
              help='')
-        
+  
         image_help_list = [
             "you need to specify the file, a directory path ",
             "will be needed if the file is not in the same ",
@@ -119,6 +121,8 @@ class Bxanalysis:
             ]
         parser.add_option('--image', '-i', default='',
             help=''.join(image_help_list))
+
+        parser.add_option('--mask','-m',default = 20, help='') 
 
         return parser.parse_args()
 
@@ -199,7 +203,6 @@ if __name__ == "__main__":
         while x_index < x_stop:
             row_array.append(int(image_array[y_index][x_index]))
             x_index += 1
-
             """
             if (app._slide != 'middle') and (image_array[y_index][x_index] >=  int(slide_tol)-int(slide_tol_range)) and (image_array[y_index][x_index] <=  int(slide_tol)+int(slide_tol_range)):
                 if slide_pixel_count == 0:
@@ -225,10 +228,10 @@ if __name__ == "__main__":
                         print "("+str(x_index-success)+","+ str(y_index)+")->("+ str(x_index-1)+","+ str(y_index)+")"
                 success = 0
             """      
-
+        
         fourier = numpy.fft.rfft(row_array)
         mask_array = []
-        mask_filter_size = 20 #app._mask  -m --mask
+        mask_filter_size = int(app._mask)
         mask_count = 0
         while mask_count < len(fourier):
             if mask_count < mask_filter_size:
@@ -243,9 +246,8 @@ if __name__ == "__main__":
             print str(counter)+":"+str(row_array[counter])+":"+str(final_product[counter])
             counter += 1
         
-        y_index += 1
 
-        """ THE FILE INPUT
+        """
         mask_array = []
         mask_file = open('dummy.txt','r')
         mask_file_lines = mask_file.read().splitlines()
@@ -261,18 +263,19 @@ if __name__ == "__main__":
         data_file.close()
         #performing the FFT using RFFT and IRFFT
         fft_data_array = numpy.fft.rfft(data_array)
+
         index = 0
         combined_array = []
         while index < len(mask_array):
             combined_array.append(data_array[index]*mask_array[index])
             index += 1
-        filter_array = numpy.fft.irfft(combined_array)
-        for line in filter_array:
+        filter_array = numpy.fft.ifft(combined_array)
+        for line in fft_data_array:
             print line
         """
 
 
-
+        y_index += 1
         """
         if app._slide != 'middle':
             print row_total, "pixels will be subtracted from delta_x to account for the slide"
