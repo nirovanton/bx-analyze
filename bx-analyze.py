@@ -64,9 +64,9 @@ class Bxanalysis:
         tolerance_help_list = [
             "The tolerance setting allows you to establish a base ",
             "brightness value at which the program detects wrinkles. ",
-            "By default the tollerance is set to 55"
+            "By default the tollerance is set to -15 for the fft.",
             ]
-        parser.add_option('--tolerance', '-t', default=55,
+        parser.add_option('--tolerance', '-t', default=-15,
             help=''.join(tolerance_help_list))
 
         width_help_list = [
@@ -149,6 +149,7 @@ if __name__ == "__main__":
     if app._slide != 'middle':
         span,slide_tol,slide_tol_range = app._slide.split(":")
 
+#Todo: place all of these into an error function.
     if (app._row != 'all') and (app._Yi != False or app._Yf != False):
         print "Error: You cannot specify a single row [ -r ] and a range [ Yi or Yf ] fix one."
         sys.exit()
@@ -247,7 +248,7 @@ if __name__ == "__main__":
             dict_index += 1
         
         for key in fft_dict.keys():
-            if fft_dict[key] <= -15:
+            if fft_dict[key] <= app._tolerance:
                 success += 1
                 if success == 1:
                     s_start = key
@@ -258,15 +259,13 @@ if __name__ == "__main__":
                         print "("+str(s_start)+","+ str(y_index)+")->("+ str(key)+","+ str(y_index)+")"
                 success = 0
 
-        
-        """ FFT PRINTED DATA
-        counter = 0
-        image_indexer = x_start
-        while counter < len(final_product):
-            print str(image_indexer)+":"+str(row_array[counter])+":"+str(final_product[counter])
-            counter += 1
-            image_indexer += 1
-        """
+        if app._verbose == "fft":        
+            counter = 0
+            image_indexer = x_start
+            while counter < len(final_product):
+                print str(image_indexer)+":"+str(row_array[counter])+":"+str(final_product[counter])
+                counter += 1
+                image_indexer += 1
 
         """  FILE ARRAY - TEMP
         mask_array = []
@@ -284,7 +283,6 @@ if __name__ == "__main__":
         data_file.close()
         #performing the FFT using RFFT and IRFFT
         fft_data_array = numpy.fft.rfft(data_array)
-
         index = 0
         combined_array = []
         while index < len(mask_array):
@@ -302,8 +300,9 @@ if __name__ == "__main__":
         if wrinkle_count >= 1:
             wavelength = (delta_x*pixel_ratio)/wrinkle_count
             lambda_array.append(wavelength)
-            if app._verbose != False:
-                print "row:"+str(y_index)+", wrinkles:"+str(wrinkle_count)+", lambda:"+str(wavelength) 
+            if app._verbose != False and app._verbose != 'fft':
+                print ""
+                print "row:"+str(y_index-1)+", wrinkles:"+str(wrinkle_count)+", lambda:"+str(wavelength) 
             lambda_array.append(wavelength)
             wrinkle_count = 0
         y_index += 1
@@ -311,19 +310,20 @@ if __name__ == "__main__":
     for wavelength in lambda_array:
         lambda_sum += wavelength
 
-    print "=========================================================="
-    print "Image File:\t\t\t"+app._image
-    if app._slide == 'middle':
-        print "Scan Type:\t\t\t"+app._slide
-    else:
-        print "scan Type:\t\t\tEdge"
-    print "Starting position (x,y):\t("+str(x_start)+","+str(y_start)+") pixels"
-    print "Ending position (x,y):\t\t("+str(x_stop)+","+str(y_stop)+") pixels"
-    print "Sample Tolerance:\t\t"+str(app._tolerance)
-    if app._slide != 'middle':
-        print "Slide tolerance range:\t\t"+str(int(slide_tol)-int(slide_tol_range))+ " to "+str(int(slide_tol)+int(slide_tol_range))    
-        print "Minimum slide span:\t\t"+span+" pixels"
-    print "Wrinkle thickness range:\t"+w_min+" to "+w_max+" pixels"
-    print "Approximated Wavelength\t\t"+str(lambda_sum/len(lambda_array))+" microns"
-    print "=========================================================="
+    if app._verbose != 'fft':
+        print "=========================================================="
+        print "Image File:\t\t\t"+app._image
+        if app._slide == 'middle':
+            print "Scan Type:\t\t\t"+app._slide
+        else:
+            print "scan Type:\t\t\tEdge"
+        print "Starting position (x,y):\t("+str(x_start)+","+str(y_start)+") pixels"
+        print "Ending position (x,y):\t\t("+str(x_stop)+","+str(y_stop)+") pixels"
+        print "Sample Tolerance:\t\t"+str(app._tolerance)
+        if app._slide != 'middle':
+            print "Slide tolerance range:\t\t"+str(int(slide_tol)-int(slide_tol_range))+ " to "+str(int(slide_tol)+int(slide_tol_range))
+            print "Minimum slide span:\t\t"+span+" pixels"
+        print "Wrinkle thickness range:\t"+w_min+" to "+w_max+" pixels"
+        print "Approximated Wavelength\t\t"+str(lambda_sum/len(lambda_array))+" microns"
+        print "=========================================================="
 
