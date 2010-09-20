@@ -16,6 +16,7 @@
 #    Free Software Foundation, Inc.,                                       #
 #    59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             #
 ############################################################################
+
 import sys
 import png
 import numpy
@@ -133,6 +134,9 @@ class Bxanalysis:
             help=''.join(mask_help_list))
 
         return parser.parse_args()
+    
+    def run(self):
+        pass
 
 if __name__ == "__main__": 
 
