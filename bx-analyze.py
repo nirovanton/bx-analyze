@@ -293,7 +293,6 @@ if __name__ == "__main__":
             print line
         """
 
-        y_index += 1
         if app._slide != 'middle':
             print row_total, "pixels will be subtracted from delta_x to account for the slide"
 
@@ -301,7 +300,6 @@ if __name__ == "__main__":
             wavelength = (delta_x*pixel_ratio)/wrinkle_count
             lambda_array.append(wavelength)
             if app._verbose != False and app._verbose != 'fft':
-                print ""
                 print "row:"+str(y_index-1)+", wrinkles:"+str(wrinkle_count)+", lambda:"+str(wavelength) 
             lambda_array.append(wavelength)
             wrinkle_count = 0
