@@ -248,7 +248,7 @@ if __name__ == "__main__":
             dict_index += 1
         
         for key in fft_dict.keys():
-            if fft_dict[key] <= app._tolerance:
+            if fft_dict[key] <= int(app._tolerance):
                 success += 1
                 if success == 1:
                     s_start = key
