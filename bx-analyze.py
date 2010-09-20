@@ -225,20 +225,8 @@ if __name__ == "__main__":
                     row_total += slide_pixel_count
                 slide_pixel_count = 0
             """
-            
             row_array.append(int(image_array[y_index][x_index]))
             x_index += 1
-
-
-#            if image_array[y_index][x_index] <= int(app._tolerance):
-#                success += 1
-#            else:
-#                if (success >= int(w_min) and success < int(w_max)):
-#                    wrinkle_count += 1
-#                    if app._verbose == 'high':
-#                        print "("+str(x_index-success)+","+ str(y_index)+")->("+ str(x_index-1)+","+ str(y_index)+")"
-#                success = 0
-        
               
         fourier = numpy.fft.rfft(row_array)
         mask_array = []
@@ -251,30 +239,24 @@ if __name__ == "__main__":
                 mask_array.append(1)
             mask_count +=1
         final_product = numpy.fft.irfft(fourier*mask_array)
-        #for line
-        test = {}
+        fft_dict = {}
         
         dict_index = x_start
         for line in final_product:
-            test[dict_index] = line
+            fft_dict[dict_index] = line
             dict_index += 1
         
-        for bla in test.keys():
-            print test[bla]
-       
-        
-
-#            if image_array[y_index][x_index] <= int(app._tolerance):
-#                success += 1
-#            else:
-#                if (success >= int(w_min) and success < int(w_max)):
-#                    wrinkle_count += 1
-#                    if app._verbose == 'high':
-#                        print "("+str(x_index-success)+","+ str(y_index)+")->("+ str(x_i    ndex-1)+","+ str(y_index)+")"
-#                success = 0
-
-
-
+        for key in fft_dict.keys():
+            if fft_dict[key] <= -15:
+                success += 1
+                if success == 1:
+                    s_start = key
+            else:
+                if (success >= int(w_min) and success < int(w_max)):
+                    wrinkle_count += 1
+                    if app._verbose == 'high':
+                        print "("+str(s_start)+","+ str(y_index)+")->("+ str(key)+","+ str(y_index)+")"
+                success = 0
 
         
         """ FFT PRINTED DATA
@@ -313,9 +295,7 @@ if __name__ == "__main__":
             print line
         """
 
-
         y_index += 1
-        """     
         if app._slide != 'middle':
             print row_total, "pixels will be subtracted from delta_x to account for the slide"
 
@@ -346,4 +326,4 @@ if __name__ == "__main__":
     print "Wrinkle thickness range:\t"+w_min+" to "+w_max+" pixels"
     print "Approximated Wavelength\t\t"+str(lambda_sum/len(lambda_array))+" microns"
     print "=========================================================="
-    """
+
