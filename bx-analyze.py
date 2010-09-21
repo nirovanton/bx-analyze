@@ -153,7 +153,7 @@ if __name__ == "__main__":
     if app._slide != 'middle':
         span,slide_tol,slide_tol_range = app._slide.split(":")
 
-#Todo: place all of these into an error function.
+#Todo place all of these into an error function.
     if (app._row != 'all') and (app._Yi != False or app._Yf != False):
         print "Error: You cannot specify a single row [ -r ] and a range [ Yi or Yf ] fix one."
         sys.exit()
@@ -211,54 +211,67 @@ if __name__ == "__main__":
     pdms_detection = False
     y_index = y_start
     while y_index <= y_stop:
+        ####setting everything to 0 to begin the iterations
         x_index = x_start
-        slide_pixel_count = 0
-        slide_Xi = 0
+        pdms_pixel_count = 0
+        pdms_Xi = 0
+        pdms_Xf = 0
+        swnt_Xi = 0 
+        swnt_Xf = 0
         row_total = 0
-        slide_Xf = 0
         row_array=[]
-        swnt_Xi = 0
-        smnt_Xf = 0
         pdms_location = 'none'
         while x_index < x_stop:
-            if (app._slide != 'middle') and (image_array[y_index][x_index] >=  int(slide_tol)-int(slide_tol_range)) and (image_array[y_index][x_index] <=  int(slide_tol)+int(slide_tol_range)):
-                if slide_pixel_count == 0:
-                    slide_Xi = x_index
-                    if pdms_location == 'none':
-                        if x_index < 500:
-                            pdms_location = 'left'
-                        if x_index > 700:
-                            pdms_location = 'right'
-                slide_pixel_count += 1
-                if x_index == x_stop-1:
-                    row_total += slide_pixel_count
-            else:
-                if (app._slide != 'middle') and (slide_pixel_count >= int(span)):
-                    slide_Xf = x_index
-                    pdms_detection = True
-                    row_total += slide_pixel_count
-                slide_pixel_count = 0
+            if app._slide != 'middle':
+                if image_array[y_index][x_index] >= (int(slide_tol)-int(slide_tol_range)):
+                    if image_array[y_index][x_index] <= (int(slide_tol)+int(slide_tol_range)):
+                        if pdms_pixel_count == 0:
+                            pdms_Xi = x_index
+                        pdms_pixel_count += 1
+                        if x_index == x_stop-1:
+                            row_total += pdms_pixel_count
+                
+                # THIS PART IS FUCKED
+                # TAKE THE TOP 3 IF'S AND REWRITE:
+                # IF LESS THAN OR MORE THAN OR == END -1 ALL ON 1 big statement.
+                if image_array[y_index][x_index] < (int(slide_tol)-int(slide_tol_range)):
+                    if image_array[y_index][x_index] > (int(slide_tol)+int(slide_tol_range)):
+                        if x_index == x_stop-1:
+                            if (app._slide != 'middle') and (pdms_pixel_count >= int(span)): 
+                                pdms_Xf = x_index                                     
+                                pdms_detection = True    
+                            if x_index < width/2:
+                                pdms_location = 'left'
+                            if x_index > int(width)/2:
+                                pdms_location = 'right'
+                            row_total += pdms_pixel_count
+                            pdms_pixel_count = 0
             x_index += 1
 
-        if pdms_location == 'left':
-            swnt_Xi = slide_Xf
+        if pdms_location == 'none':
+            swnt_Xi = x_start
             swnt_Xf = x_stop
+        if pdms_location == 'left':
+            swnt_Xi = pdms_Xf
+            swnt_Xf = x_stop 
         if pdms_location == 'right':
             swnt_Xi = x_start
-            swnt_Xf = slide_Xi
-        
-        i = swnt_Xi
-        while i < swnt_Xf:
-            row_array.append(int(image_array[y_index][i]))
+            swnt_Xf = pdms_Xi
+   
+        print "row:",y_index,"- pdms-detection",pdms_location," :: start", swnt_Xi, "stop",swnt_Xf
+        y_index += 1
+
+        """
+        i = swnt_Xi                                           # set an indexer to the beginnig x-pixe.
+        while i < swnt_Xf:                                    # increment from beginning pixel to end pixel
+            row_array.append(int(image_array[y_index][i]))    # append the intensity value to the array
             i += 1
-        if swnt_Xi == x_start and swnt_Xf == x_stop:
-            pdms_location = 'none'
-        
-        
+
         fourier = numpy.fft.rfft(row_array)
         mask_array = []
         mask_filter_size = int(app._mask)
         mask_count = 0
+        s_start = 0
         while mask_count < len(fourier):
             if mask_count < mask_filter_size:
                 mask_array.append(0)
@@ -297,7 +310,7 @@ if __name__ == "__main__":
             wavelength = (delta_x*pixel_ratio)/wrinkle_count
             lambda_array.append(wavelength)
             if app._verbose == 'high':
-                print "pdms location:",pdms_location,"\tsample range:",swnt_Xi,"to",swnt_Xf
+                print "pdms:",pdms_location,"- sample range:",swnt_Xi,"to",swnt_Xf
             if app._verbose != False and app._verbose != 'fft':
                 print "row:"+str(y_index)+", wrinkles:"+str(wrinkle_count)+", lambda:"+str(wavelength)
             lambda_array.append(wavelength)
@@ -317,20 +330,20 @@ if __name__ == "__main__":
 
     if app._verbose != 'fft':
         print "=========================================================="
-        print "Image File:\t\t\t"+app._image
+        print "Image File:\t\t"+app._image
         if pdms_detection:
-            print "Scan type:\t\t\tEdge"
+            print "Scan type:\t\tEdge"
         else:
-            print "scan type:\t\t\tMiddle"        
-        print "Starting position (x,y):\t("+str(x_start)+","+str(y_start)+") pixels"
-        print "Ending position (x,y):\t\t("+str(x_stop)+","+str(y_stop)+") pixels"
-        print "Mask size:\t\t\t"+str(app._mask)
-        print "Sample tolerance:\t\t"+str(app._tolerance)
+            print "scan type:\t\tMiddle"        
+        print "Starting (x,y):\t\t("+str(x_start)+","+str(y_start)+") pixels"
+        print "Ending (x,y):\t\t("+str(x_stop)+","+str(y_stop)+") pixels"
+        print "Mask size:\t\t"+str(app._mask)
+        print "Sample tolerance:\t"+str(app._tolerance)
         if app._slide != 'middle':
-            print "Slide tolerance:\t\t"+str(slide_tol)
-            print "Slide tolerance range:\t\t"+str(int(slide_tol)-int(slide_tol_range))+ " to "+str(int(slide_tol)+int(slide_tol_range))
-            print "Minimum slide span:\t\t"+span+" pixels"
-        print "Wrinkle thickness range:\t"+w_min+" to "+w_max+" pixels"
-        print "Approximated wavelength\t\t"+str(lambda_sum/len(lambda_array))+" microns"
+            print "Slide tolerance:\t"+str(slide_tol)
+            print "Slide tol. range:\t"+str(int(slide_tol)-int(slide_tol_range))+ " to "+str(int(slide_tol)+int(slide_tol_range))
+            print "Min slide span:\t"+span+" pixels"
+        print "Wrinkle size range:\t"+w_min+" to "+w_max+" pixels"
+        print "Approx wavelength\t"+str(lambda_sum/len(lambda_array))+" microns"
         print "=========================================================="
-
+"""
