@@ -96,7 +96,7 @@ class Bxanalysis:
             "be considered slide, not sample, and wont be ",
             "considered in the final approximations.",
             ]
-        parser.add_option('--slide', '-s', default='middle',
+        parser.add_option('--slide', '-s', default='10:38:6',
             help=''.join(slide_help_list))
 
         position_help_list = [
@@ -150,8 +150,7 @@ if __name__ == "__main__":
     width, height, iterable, something_else = png_file.read()
     image_array = numpy.vstack(itertools.imap(numpy.uint8, iterable))
     w_min,w_max = app._width.split(":")
-    if app._slide != 'middle':
-        span,slide_tol,slide_tol_range = app._slide.split(":")
+    span,slide_tol,slide_tol_range = app._slide.split(":")
 
 #Todo place all of these into an error function.
     if (app._row != 'all') and (app._Yi != False or app._Yf != False):
@@ -221,42 +220,42 @@ if __name__ == "__main__":
         row_total = 0
         row_array=[]
         pdms_location = 'none'
+        pdms = False
         while x_index < x_stop:
-            if app._slide != 'middle':
-                if image_array[y_index][x_index] >= (int(slide_tol)-int(slide_tol_range)):
-                    if image_array[y_index][x_index] <= (int(slide_tol)+int(slide_tol_range)):
-                        if pdms_pixel_count == 0:
-                            pdms_Xi = x_index
-                        pdms_pixel_count += 1
-                        if x_index == x_stop-1:
-                            row_total += pdms_pixel_count
-                
-                # THIS PART IS FUCKED
-                # TAKE THE TOP 3 IF'S AND REWRITE:
-                # IF LESS THAN OR MORE THAN OR == END -1 ALL ON 1 big statement.
-                if image_array[y_index][x_index] < (int(slide_tol)-int(slide_tol_range)):
-                    if image_array[y_index][x_index] > (int(slide_tol)+int(slide_tol_range)):
-                        if x_index == x_stop-1:
-                            if (app._slide != 'middle') and (pdms_pixel_count >= int(span)): 
-                                pdms_Xf = x_index                                     
-                                pdms_detection = True    
-                            if x_index < width/2:
-                                pdms_location = 'left'
-                            if x_index > int(width)/2:
-                                pdms_location = 'right'
-                            row_total += pdms_pixel_count
-                            pdms_pixel_count = 0
+            if image_array[y_index][x_index] >= (int(slide_tol)-int(slide_tol_range)):
+                if image_array[y_index][x_index] <= (int(slide_tol)+int(slide_tol_range)):
+                    if pdms_pixel_count == 0 and pdms == False:
+                        pdms_Xi = x_index
+                    pdms_pixel_count += 1
+                    if x_index == x_stop-1:
+                        row_total += pdms_pixel_count
+            if image_array[y_index][x_index] < int(slide_tol)-int(slide_tol_range) \
+            or image_array[y_index][x_index] > int(slide_tol)+int(slide_tol_range) \
+            or x_index == x_stop-1:
+                if pdms_pixel_count >= int(span): 
+                    pdms_Xf = x_index
+
+                    pdms = True
+                    pdms_detection = True
+                    row_total += pdms_pixel_count
+#                    print "DETECTED:",x_index-pdms_pixel_count+1,"to",x_index
+                pdms_pixel_count = 0
             x_index += 1
 
-        if pdms_location == 'none':
+        if pdms:
             swnt_Xi = x_start
             swnt_Xf = x_stop
-        if pdms_location == 'left':
-            swnt_Xi = pdms_Xf
-            swnt_Xf = x_stop 
-        if pdms_location == 'right':
+            if pdms_Xf < width/4 and pdms_Xi < (x_start + 10):
+                pdms_location = 'left'
+                swnt_Xi = pdms_Xf
+                swnt_Xf = x_stop 
+            if pdms_Xi > width/4 and pdms_Xf > (x_stop - 10):
+                pdms_location = 'right'
+                swnt_Xi = x_start
+                swnt_Xf = pdms_Xi
+        else:
             swnt_Xi = x_start
-            swnt_Xf = pdms_Xi
+            swnt_Xf = x_stop
    
         print "row:",y_index,"- pdms-detection",pdms_location," :: start", swnt_Xi, "stop",swnt_Xf
         y_index += 1
@@ -339,7 +338,7 @@ if __name__ == "__main__":
         print "Ending (x,y):\t\t("+str(x_stop)+","+str(y_stop)+") pixels"
         print "Mask size:\t\t"+str(app._mask)
         print "Sample tolerance:\t"+str(app._tolerance)
-        if app._slide != 'middle':
+        if pdms_detection:
             print "Slide tolerance:\t"+str(slide_tol)
             print "Slide tol. range:\t"+str(int(slide_tol)-int(slide_tol_range))+ " to "+str(int(slide_tol)+int(slide_tol_range))
             print "Min slide span:\t"+span+" pixels"
