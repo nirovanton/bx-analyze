@@ -142,6 +142,7 @@ if __name__ == "__main__":
     app = Bxanalysis(sys.argv)
 
     lambda_array = []
+
     success = 0
     pixel_ratio = (1/(3.552))  # microns/pixel
     wrinkle_count = 0
@@ -149,8 +150,8 @@ if __name__ == "__main__":
     width, height, iterable, something_else = png_file.read()
     image_array = numpy.vstack(itertools.imap(numpy.uint8, iterable))
     w_min,w_max = app._width.split(":")
-    if app._slide != 'none':
-        span,slide_tol,slide_tol_range,pdms_location = app._slide.split(":")
+
+
 
 #Todo place all of these into an error function.
     if (app._row != 'all') and (app._Yi != False or app._Yf != False):
@@ -202,7 +203,6 @@ if __name__ == "__main__":
         x_stop = width
     else:
         x_stop = int(app._Xf)
-    delta_x = x_stop-x_start
 
 
     #gap the output
@@ -212,14 +212,29 @@ if __name__ == "__main__":
     while y_index <= y_stop:
         x_index = x_start
         pdms_pixel_count = 0
-        pdms_Xi = 0
-        pdms_Xf = 0
-        swnt_Xi = 0 
-        swnt_Xf = 0
         row_total = 0
-        row_array=[]
+        white_count = 0
+        row_array = []
+        pdms_location = 'none'
+        row_fault = False
         pdms = False
         while x_index < x_stop:
+            if image_array[y_index][x_index] == 255:
+                if x_index == 0:
+                    pdms_location = 'left'
+                if x_index == x_stop - 1:
+                    pdms_location = 'right'
+                white_count += 1
+            row_array.append(int(image_array[y_index][x_index]))
+            x_index += 1
+        if white_count > x_stop/3:
+            print "row:",y_index," - Row wavelength estimate has been aborted."
+            row_fault == True
+
+        
+        # PRE WHITE-OUT
+        """
+        if pdms:
             if app._slide != 'none':
                 if (pdms_location == 'left' and x_index <= int(width)/2) \
                 or (pdms_location == 'right' and x_index >= int(width)/2):
@@ -256,16 +271,12 @@ if __name__ == "__main__":
         else:
             swnt_Xi = x_start
             swnt_Xf = x_stop
+            pdms_row_location = 'none'
    
-        print "row:",y_index,"- pdms-detection",pdms_location," :: start", swnt_Xi, "stop",swnt_Xf
+        print "row:",y_index,"- pdms-detection",pdms_row_location," :: start", swnt_Xi, "stop",swnt_Xf
         y_index += 1
-
         """
-        i = swnt_Xi                                           # set an indexer to the beginnig x-pixe.
-        while i < swnt_Xf:                                    # increment from beginning pixel to end pixel
-            row_array.append(int(image_array[y_index][i]))    # append the intensity value to the array
-            i += 1
-
+        
         fourier = numpy.fft.rfft(row_array)
         mask_array = []
         mask_filter_size = int(app._mask)
@@ -280,7 +291,7 @@ if __name__ == "__main__":
         final_product = numpy.fft.irfft(fourier*mask_array)
         fft_dict = {}
         
-        dict_index = swnt_Xi
+        dict_index = x_start
         for line in final_product:
             fft_dict[dict_index] = line
             dict_index += 1
@@ -299,17 +310,16 @@ if __name__ == "__main__":
 
         if app._verbose == "fft":        
             counter = 0
-            image_indexer = swnt_Xi
+            image_indexer = x_start
             while counter < len(final_product):
                 print str(image_indexer)+":"+str(row_array[counter])+":"+str(final_product[counter])
                 counter += 1
                 image_indexer += 1
 
+        delta_x = x_stop - x_start - white_count
         if wrinkle_count >= 1:
             wavelength = (delta_x*pixel_ratio)/wrinkle_count
             lambda_array.append(wavelength)
-            if app._verbose == 'high':
-                print "pdms:",pdms_location,"- sample range:",swnt_Xi,"to",swnt_Xf
             if app._verbose != False and app._verbose != 'fft':
                 print "row:"+str(y_index)+", wrinkles:"+str(wrinkle_count)+", lambda:"+str(wavelength)
             lambda_array.append(wavelength)
@@ -318,6 +328,7 @@ if __name__ == "__main__":
 
         #gap the row output
         if app._verbose == 'high':
+            print "Calculated over",delta_x,"pixels of nanotubes."
             print ""
         if y_index > y_stop and app._verbose == 'low':
             print ""
@@ -338,11 +349,6 @@ if __name__ == "__main__":
         print "Ending (x,y):\t\t("+str(x_stop)+","+str(y_stop)+") pixels"
         print "Mask size:\t\t"+str(app._mask)
         print "Sample tolerance:\t"+str(app._tolerance)
-        if pdms_detection:
-            print "Slide tolerance:\t"+str(slide_tol)
-            print "Slide tol. range:\t"+str(int(slide_tol)-int(slide_tol_range))+ " to "+str(int(slide_tol)+int(slide_tol_range))
-            print "Min slide span:\t"+span+" pixels"
         print "Wrinkle size range:\t"+w_min+" to "+w_max+" pixels"
         print "Approx wavelength\t"+str(lambda_sum/len(lambda_array))+" microns"
         print "=========================================================="
-"""
