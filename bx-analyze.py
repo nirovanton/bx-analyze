@@ -137,12 +137,11 @@ class Bxanalysis:
     def run(self):
         pass
 
+
 if __name__ == "__main__": 
 
     app = Bxanalysis(sys.argv)
-
     lambda_array = []
-
     success = 0
     pixel_ratio = (1/(3.552))  # microns/pixel
     wrinkle_count = 0
@@ -151,9 +150,7 @@ if __name__ == "__main__":
     image_array = numpy.vstack(itertools.imap(numpy.uint8, iterable))
     w_min,w_max = app._width.split(":")
 
-
-
-#Todo place all of these into an error function.
+    #Todo place all of these into an error function.
     if (app._row != 'all') and (app._Yi != False or app._Yf != False):
         print "Error: You cannot specify a single row [ -r ] and a range [ Yi or Yf ] fix one."
         sys.exit()
@@ -178,7 +175,6 @@ if __name__ == "__main__":
     if (int(w_min) > w_max):
         print "Error: Your width quantities are bass-ackwards."
         sys.exit()
-
 
     #Establishing the Y boundaries
     if app._row != 'all':
@@ -227,55 +223,6 @@ if __name__ == "__main__":
                 white_count += 1
             row_array.append(int(image_array[y_index][x_index]))
             x_index += 1
-        if white_count > x_stop/3:
-            print "row:",y_index," - Row wavelength estimate has been aborted."
-            row_fault == True
-
-        
-        # PRE WHITE-OUT
-        """
-        if pdms:
-            if app._slide != 'none':
-                if (pdms_location == 'left' and x_index <= int(width)/2) \
-                or (pdms_location == 'right' and x_index >= int(width)/2):
-                    if image_array[y_index][x_index] >= (int(slide_tol)-int(slide_tol_range)):
-                        if image_array[y_index][x_index] <= (int(slide_tol)+int(slide_tol_range)):
-                            if pdms_pixel_count == 0 and pdms == False : 
-                                pdms_Xi = x_index
-                            pdms_pixel_count += 1
-            #               print x_index,"count",pdms_pixel_count
-                            if x_index == x_stop-1:
-                                row_total += pdms_pixel_count
-                    if image_array[y_index][x_index] < int(slide_tol)-int(slide_tol_range) \
-                    or image_array[y_index][x_index] > int(slide_tol)+int(slide_tol_range) \
-                    or x_index == x_stop-1:
-                        if pdms_pixel_count >= int(span): 
-                            pdms_Xf = x_index
-                            pdms = True
-                            pdms_detection = True
-                            row_total += pdms_pixel_count
-           #                print "DETECTED:",x_index-pdms_pixel_count+1,"to",x_index
-                        pdms_pixel_count = 0
-            x_index += 1
-#            print "start:",pdms_Xi,"stop:",pdms_Xf
-
-        if pdms:
-            swnt_Xi = x_start
-            swnt_Xf = x_stop
-            if pdms_location == 'left':
-                swnt_Xi = pdms_Xf
-                swnt_Xf = x_stop 
-            if pdms_location == 'right':
-                swnt_Xi = x_start
-                swnt_Xf = pdms_Xi
-        else:
-            swnt_Xi = x_start
-            swnt_Xf = x_stop
-            pdms_row_location = 'none'
-   
-        print "row:",y_index,"- pdms-detection",pdms_row_location," :: start", swnt_Xi, "stop",swnt_Xf
-        y_index += 1
-        """
         
         fourier = numpy.fft.rfft(row_array)
         mask_array = []
@@ -295,7 +242,9 @@ if __name__ == "__main__":
         for line in final_product:
             fft_dict[dict_index] = line
             dict_index += 1
-        
+       
+
+        w_min_val = 0
         for key in fft_dict.keys():
             if fft_dict[key] <= int(app._tolerance):
                 success += 1
@@ -305,7 +254,7 @@ if __name__ == "__main__":
                 if (success >= int(w_min) and success < int(w_max)):
                     wrinkle_count += 1
                     if app._verbose == 'high':
-                        print "("+str(s_start)+","+ str(y_index)+")->("+ str(key)+","+ str(y_index)+")"
+                        print "(x,y) - ("+str(s_start)+","+ str(y_index)+")->("+ str(key)+","+ str(y_index)+")"
                 success = 0
 
         if app._verbose == "fft":        
@@ -328,7 +277,7 @@ if __name__ == "__main__":
 
         #gap the row output
         if app._verbose == 'high':
-            print "Calculated over",delta_x,"pixels of nanotubes."
+            print "Calculated over",delta_x,"nanotube pixels."
             print ""
         if y_index > y_stop and app._verbose == 'low':
             print ""
@@ -352,3 +301,5 @@ if __name__ == "__main__":
         print "Wrinkle size range:\t"+w_min+" to "+w_max+" pixels"
         print "Approx wavelength\t"+str(lambda_sum/len(lambda_array))+" microns"
         print "=========================================================="
+
+
