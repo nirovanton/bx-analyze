@@ -28,7 +28,6 @@ class Bxanalysis:
         self._tolerance = False
         self._row = ""
         self._width = ""
-        self._slide = ""
         self._mask = 0
         self._verbose = False
         self._Xi = False
@@ -44,7 +43,6 @@ class Bxanalysis:
         self._tolerance = variables.tolerance
         self._row = variables.row
         self._width = variables.width
-        self._slide = variables.slide
         self._verbose = variables.verbose
         self._Xi = variables.Xi
         self._mask = variables.mask
@@ -74,9 +72,9 @@ class Bxanalysis:
             "The width settings alow you to specify the minimum ",
             "and maximum width values for wrinkle detection. By ",
             "default, once a wrinkle is detected, it needs to be ",
-            "in the range: 2 - 9 pixels , -w 2:9",
+            "in the range: 1 - 10 pixels , -w 1:10",
             ]
-        parser.add_option('--width', '-w', default='2:9',
+        parser.add_option('--width', '-w', default='1:10',
             help=''.join(width_help_list))
 
         verbose_help_list = [
@@ -87,17 +85,6 @@ class Bxanalysis:
         parser.add_option('--verbose', '-v', default=False,
             help=''.join(verbose_help_list))
         
-        slide_help_list = [
-            "This option allows you to specify the pdms settings. ",
-            "The pdms within an image shall be isolated to either ",
-            "side, you need to specify a tolerance, span, range, ",
-            "and side.   -s 10:39:5:right ",
-            "'consder a span of pixels 10 long with an intensity ",
-            "of 39 +/- 5  on the right side to be pdms.'",
-            ]
-        parser.add_option('--slide', '-s', default='none',
-            help=''.join(slide_help_list))
-
         position_help_list = [
             "You can specify both a starting position and an ",
             "ending position as the range over which the program ",
@@ -142,7 +129,6 @@ if __name__ == "__main__":
 
     app = Bxanalysis(sys.argv)
     lambda_array = []
-    success = 0
     pixel_ratio = (1/(3.552))  # microns/pixel
     wrinkle_count = 0
     png_file = png.Reader(app._image)
@@ -200,30 +186,48 @@ if __name__ == "__main__":
     else:
         x_stop = int(app._Xf)
 
+   #Extracting the file name from the full file path
+    image = app._image.split("/")
+    i = 0
+    while i<= len(image):
+        if i == len(image):
+            png_file = image[i-1]
+        i+=1
 
     #gap the output
     print ""
     pdms_detection = False
     y_index = y_start
     while y_index <= y_stop:
-        x_index = x_start
+        x_index = 0
         pdms_pixel_count = 0
         row_total = 0
         white_count = 0
         row_array = []
         pdms_location = 'none'
+        pdms_count = 0
         row_fault = False
         pdms = False
-        while x_index < x_stop:
-            if image_array[y_index][x_index] == 255:
-                if x_index == 0:
-                    pdms_location = 'left'
-                if x_index == x_stop - 1:
-                    pdms_location = 'right'
-                white_count += 1
-            row_array.append(int(image_array[y_index][x_index]))
+        lambda_sum = 0
+        while x_index < width:
+            if x_index < x_start or x_index > x_stop:
+                row_array.append(70)
+                white_count += pdms_count
+            else:    
+                if image_array[y_index][x_index] == 70:
+                    if x_index == 5:
+                        pdms_location = 'left'
+                    if x_index == x_stop -1 and pdms_count >= 5:
+                        white_count += pdms_count
+                        pdms_location = 'right'
+                    pdms_count += 1
+                else:
+                    if pdms_count >= 5:
+                        white_count += pdms_count
+                    pdms_count = 0
+                row_array.append(int(image_array[y_index][x_index]))
             x_index += 1
-        
+        y_index += 1
         fourier = numpy.fft.rfft(row_array)
         mask_array = []
         mask_filter_size = int(app._mask)
@@ -238,28 +242,28 @@ if __name__ == "__main__":
         final_product = numpy.fft.irfft(fourier*mask_array)
         fft_dict = {}
         
-        dict_index = x_start
+        dict_index = 0
         for line in final_product:
             fft_dict[dict_index] = line
             dict_index += 1
        
-
-        w_min_val = 0
+        success = False
+        avg = 0
         for key in fft_dict.keys():
-            if fft_dict[key] <= int(app._tolerance):
-                success += 1
-                if success == 1:
-                    s_start = key
-            else:
-                if (success >= int(w_min) and success < int(w_max)):
-                    wrinkle_count += 1
-                    if app._verbose == 'high':
-                        print "(x,y) - ("+str(s_start)+","+ str(y_index)+")->("+ str(key)+","+ str(y_index)+")"
-                success = 0
-
+            if key > 1 and key < (width-1) \
+            and ( key > x_start and key < x_stop) \
+            and fft_dict[key] <= int(app._tolerance):
+               if fft_dict[key] < fft_dict[key-1] \
+               and fft_dict[key] < fft_dict[key+1]:
+                   success = True
+            if success:
+                wrinkle_count += 1
+                if app._verbose == 'high':
+                    print "(x,y): ("+ str(key)+","+ str(y_index)+")"
+            success = False
         if app._verbose == "fft":        
             counter = 0
-            image_indexer = x_start
+            image_indexer = 0
             while counter < len(final_product):
                 print str(image_indexer)+":"+str(row_array[counter])+":"+str(final_product[counter])
                 counter += 1
@@ -273,7 +277,6 @@ if __name__ == "__main__":
                 print "row:"+str(y_index)+", wrinkles:"+str(wrinkle_count)+", lambda:"+str(wavelength)
             lambda_array.append(wavelength)
             wrinkle_count = 0
-        y_index += 1
 
         #gap the row output
         if app._verbose == 'high':
@@ -281,19 +284,14 @@ if __name__ == "__main__":
             print ""
         if y_index > y_stop and app._verbose == 'low':
             print ""
+        y_index += 1
 
-    lambda_sum = 0
-    
     for wavelength in lambda_array:
         lambda_sum += wavelength
 
     if app._verbose != 'fft':
         print "=========================================================="
-        print "Image File:\t\t"+app._image
-        if pdms_detection:
-            print "Scan type:\t\tEdge"
-        else:
-            print "scan type:\t\tMiddle"        
+        print "Image File:\t\t"+png_file
         print "Starting (x,y):\t\t("+str(x_start)+","+str(y_start)+") pixels"
         print "Ending (x,y):\t\t("+str(x_stop)+","+str(y_stop)+") pixels"
         print "Mask size:\t\t"+str(app._mask)
@@ -301,5 +299,4 @@ if __name__ == "__main__":
         print "Wrinkle size range:\t"+w_min+" to "+w_max+" pixels"
         print "Approx wavelength\t"+str(lambda_sum/len(lambda_array))+" microns"
         print "=========================================================="
-
 
