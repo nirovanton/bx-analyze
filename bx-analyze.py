@@ -25,9 +25,9 @@ import optparse
 
 class Bxanalysis:
     def __init__(self,argv):
-        self._tolerance = False
+        self._tolerance = 0
         self._row = ""
-        self._mask = 0
+        self._fft = 0
         self._verbose = False
         self._Xi = False
         self._Xf = False
@@ -43,7 +43,7 @@ class Bxanalysis:
         self._row = variables.row
         self._verbose = variables.verbose
         self._Xi = variables.Xi
-        self._mask = variables.mask
+        self._fft = variables.fft
         self._Xf = variables.Xf
         self._Yi = variables.Yi
         self._Yf = variables.Yf
@@ -61,9 +61,9 @@ class Bxanalysis:
         tolerance_help_list = [
             "The tolerance setting allows you to establish a base ",
             "brightness value at which the program detects wrinkles. ",
-            "By default the tollerance is set to -15 for the fft.",
+            "By default the tollerance is set to 50 for regulat scans.",
             ]
-        parser.add_option('--tolerance', '-t', default=-15,
+        parser.add_option('--tolerance', '-t', default=50,
             help=''.join(tolerance_help_list))
 
         verbose_help_list = [
@@ -98,15 +98,13 @@ class Bxanalysis:
         parser.add_option('--image', '-i', default='',
             help=''.join(image_help_list))
 
-        mask_help_list = [
-            "The mask option specifies how many consecutive 0's "
-            "are appended to the begining of the mask array. "
-            "These are used  to filter out the longer wavelegths "
-            "from the fourier transforms that are applied to "
-            "each row."
+        fft_help_list = [
+            "The fft option specifies that you would like to run ",
+            "the fft filter on the rows. the passed value specifies ",
+            "the mask filter strength.",
             ]
-        parser.add_option('--mask','-m',default = 10,
-            help=''.join(mask_help_list))
+        parser.add_option('--fft','-f',default='',
+            help=''.join(fft_help_list))
 
         return parser.parse_args()
     
@@ -183,8 +181,19 @@ if __name__ == "__main__":
         if i == len(image):
             png_file = image[i-1]
         i+=1
+    
 
-     
+    ###    Gathering FFT information
+    if app._fft != '':
+        fft_data = app._fft.split(":")
+        fft = True
+        tolerance = int(fft_data[1])
+        fft_mask = int(fft_data[0])
+    else:
+        fft = False
+        tolerance = int(app._tolerance) 
+
+
     ###    Collecting data from the individual rows.
     pdms_detection = False
     y_index = y_start
@@ -223,37 +232,41 @@ if __name__ == "__main__":
             y_index += 1
             continue
 
-
-        ###    Passing each array to the FFT 
-        fourier = numpy.fft.rfft(row_array)
-        mask_array = []
-        mask_filter_size = int(app._mask)
-        mask_count = 0
-        s_start = 0
-        while mask_count < len(fourier):
-            if mask_count < mask_filter_size:
-                mask_array.append(0)
-            else:
-                mask_array.append(1)
-            mask_count +=1
-        final_product = numpy.fft.irfft(fourier*mask_array)
-        fft_dict = {}
         
-        dict_index = 0
-        for line in final_product:
-            fft_dict[dict_index] = line
-            dict_index += 1
-       
-
-        ###    Scanning the IFFT pixel array for wrinkles
+        ###    Passing each array to the FFT 
+        final_dict = {}
+        if fft:
+            fourier = numpy.fft.rfft(row_array)
+            mask_array = []
+            mask_count = 0
+            s_start = 0
+            while mask_count < len(fourier):
+                if mask_count < fft_mask:
+                    mask_array.append(0)
+                else:
+                    mask_array.append(1)
+                mask_count +=1
+            final_product = numpy.fft.irfft(fourier*mask_array)
+            dict_index = 0
+            for line in final_product:
+                final_dict[dict_index] = line
+                dict_index += 1
+        else:
+            dict_index = 0
+            while dict_index < len(row_array):
+                final_dict[dict_index] = row_array[dict_index]
+                dict_index += 1
+          
+        
+        ###    Scanning the pixel array for wrinkles
         success = False
         avg = 0
-        for key in fft_dict.keys():
+        for key in final_dict.keys():
             if key > 1 and key < (width-1) \
             and ( key > x_start and key < x_stop) \
-            and fft_dict[key] <= int(app._tolerance):
-               if fft_dict[key] < fft_dict[key-1] \
-               and fft_dict[key] < fft_dict[key+1]:
+            and final_dict[key] <= tolerance:
+               if final_dict[key] < final_dict[key-1] \
+               and final_dict[key] < final_dict[key+1]:
                    success = True
             if success:
                 wrinkle_count += 1
@@ -263,13 +276,15 @@ if __name__ == "__main__":
 
         
         ###    FFT verbosity output
-        if app._verbose == "fft":        
+        if app._verbose == "plot":
             counter = 0
-            image_indexer = 0
-            while counter < len(final_product):
-                print str(image_indexer)+":"+str(row_array[counter])+":"+str(final_product[counter])
-                counter += 1
-                image_indexer += 1
+            while counter < len(row_array):
+                if app._fft == '':
+                    print str(counter)+":"+str(row_array[counter])
+                    counter += 1
+                else:
+                    print str(counter)+":"+str(row_array[counter])+":"+str(final_product[counter])
+                    counter += 1
 
         
         ###    Calculating lambda for each row.
@@ -277,7 +292,7 @@ if __name__ == "__main__":
         if wrinkle_count >= 1:
             wavelength = (delta_x*pixel_ratio)/wrinkle_count
             lambda_array.append(wavelength)
-            if app._verbose != False and app._verbose != 'fft' and app._verbose != 'file':
+            if app._verbose != False and app._verbose != 'plot' and app._verbose != 'file':
                 print "row:"+str(y_index)+", wrinkles:"+str(wrinkle_count)+", lambda:"+str(wavelength)
             lambda_array.append(wavelength)
             wrinkle_count = 0
@@ -294,13 +309,16 @@ if __name__ == "__main__":
         lambda_sum += wavelength
     if app._verbose == 'file':
         print png_file,"\t",lambda_sum/len(lambda_array),"um"
-    if app._verbose != 'fft' and app._verbose != 'file':
+    if app._verbose != 'plot' and app._verbose != 'file':
         print "=========================================================="
         print "Image File:\t\t"+png_file
+        if fft:
+            print "FFT tolerance:\t"+str(tolerance)
+            print "FFT mask value:\t"+str(fft_mask)
+        else:
+            print "Sample tolerance:\t"+str(tolerance)
         print "Starting (x,y):\t\t("+str(x_start)+","+str(y_start)+") pixels"
         print "Ending (x,y):\t\t("+str(x_stop)+","+str(y_stop)+") pixels"
-        print "Mask size:\t\t"+str(app._mask)
-        print "Maximum intensity:\t"+str(app._tolerance)
         print "Approx wavelength\t"+str(lambda_sum/len(lambda_array))+" microns"
         print "=========================================================="
-
+        
