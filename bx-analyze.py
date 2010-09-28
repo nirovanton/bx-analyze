@@ -27,7 +27,6 @@ class Bxanalysis:
     def __init__(self,argv):
         self._tolerance = False
         self._row = ""
-        self._width = ""
         self._mask = 0
         self._verbose = False
         self._Xi = False
@@ -42,7 +41,6 @@ class Bxanalysis:
 
         self._tolerance = variables.tolerance
         self._row = variables.row
-        self._width = variables.width
         self._verbose = variables.verbose
         self._Xi = variables.Xi
         self._mask = variables.mask
@@ -67,15 +65,6 @@ class Bxanalysis:
             ]
         parser.add_option('--tolerance', '-t', default=-15,
             help=''.join(tolerance_help_list))
-
-        width_help_list = [
-            "The width settings alow you to specify the minimum ",
-            "and maximum width values for wrinkle detection. By ",
-            "default, once a wrinkle is detected, it needs to be ",
-            "in the range: 1 - 10 pixels , -w 1:10",
-            ]
-        parser.add_option('--width', '-w', default='1:10',
-            help=''.join(width_help_list))
 
         verbose_help_list = [
             "There are 2 levels of verbosity:  Low and High.",
@@ -127,6 +116,7 @@ class Bxanalysis:
 
 if __name__ == "__main__": 
 
+    ###    Opening the image file and creating a 2d array of intesity.
     app = Bxanalysis(sys.argv)
     lambda_array = []
     pixel_ratio = (1/(3.552))  # microns/pixel
@@ -134,9 +124,9 @@ if __name__ == "__main__":
     png_file = png.Reader(app._image)
     width, height, iterable, something_else = png_file.read()
     image_array = numpy.vstack(itertools.imap(numpy.uint8, iterable))
-    w_min,w_max = app._width.split(":")
 
-    #Todo place all of these into an error function.
+
+    #TODO: place all of these into an error function.
     if (app._row != 'all') and (app._Yi != False or app._Yf != False):
         print "Error: You cannot specify a single row [ -r ] and a range [ Yi or Yf ] fix one."
         sys.exit()
@@ -158,11 +148,9 @@ if __name__ == "__main__":
     if (int(app._Yf) < 0 or int(app._Yf) > height):
         print "Error: Specified coordinates are out of pixel range!"
         sys.exit()
-    if (int(w_min) > w_max):
-        print "Error: Your width quantities are bass-ackwards."
-        sys.exit()
 
-    #Establishing the Y boundaries
+
+    ###    Establishing the Y boundaries
     if app._row != 'all':
         y_start = int(app._row)
         y_stop = int(app._row)
@@ -175,8 +163,9 @@ if __name__ == "__main__":
             y_stop = height-1
         else: 
             y_stop = int(app._Yf)
-    
-    #Establishing the X boundaries
+
+
+    ###    Establishing the X boundaries
     if app._Xi == False:
         x_start = 0
     else:
@@ -186,7 +175,8 @@ if __name__ == "__main__":
     else:
         x_stop = int(app._Xf)
 
-   #Extracting the file name from the full file path
+
+    ###    Extracting the file name from the full file path
     image = app._image.split("/")
     i = 0
     while i<= len(image):
@@ -194,8 +184,8 @@ if __name__ == "__main__":
             png_file = image[i-1]
         i+=1
 
-    #gap the output
-    print ""
+     
+    ###    Collecting data from the individual rows.
     pdms_detection = False
     y_index = y_start
     while y_index <= y_stop:
@@ -227,7 +217,14 @@ if __name__ == "__main__":
                     pdms_count = 0
                 row_array.append(int(image_array[y_index][x_index]))
             x_index += 1
-        y_index += 1
+      
+        if white_count >= .75*(x_stop-x_start) and app._verbose != 'file':
+            print "row:"+str(y_index)+" Row analysis aborted, not enough data for an accurate answer."
+            y_index += 1
+            continue
+
+
+        ###    Passing each array to the FFT 
         fourier = numpy.fft.rfft(row_array)
         mask_array = []
         mask_filter_size = int(app._mask)
@@ -247,6 +244,8 @@ if __name__ == "__main__":
             fft_dict[dict_index] = line
             dict_index += 1
        
+
+        ###    Scanning the IFFT pixel array for wrinkles
         success = False
         avg = 0
         for key in fft_dict.keys():
@@ -261,6 +260,9 @@ if __name__ == "__main__":
                 if app._verbose == 'high':
                     print "(x,y): ("+ str(key)+","+ str(y_index)+")"
             success = False
+
+        
+        ###    FFT verbosity output
         if app._verbose == "fft":        
             counter = 0
             image_indexer = 0
@@ -269,34 +271,36 @@ if __name__ == "__main__":
                 counter += 1
                 image_indexer += 1
 
+        
+        ###    Calculating lambda for each row.
         delta_x = x_stop - x_start - white_count
         if wrinkle_count >= 1:
             wavelength = (delta_x*pixel_ratio)/wrinkle_count
             lambda_array.append(wavelength)
-            if app._verbose != False and app._verbose != 'fft':
+            if app._verbose != False and app._verbose != 'fft' and app._verbose != 'file':
                 print "row:"+str(y_index)+", wrinkles:"+str(wrinkle_count)+", lambda:"+str(wavelength)
             lambda_array.append(wavelength)
             wrinkle_count = 0
 
-        #gap the row output
+        #gapping the output.
         if app._verbose == 'high':
             print "Calculated over",delta_x,"nanotube pixels."
-            print ""
-        if y_index > y_stop and app._verbose == 'low':
-            print ""
+  
         y_index += 1
 
+        
+    ###    Printing the stats for every file.
     for wavelength in lambda_array:
         lambda_sum += wavelength
-
-    if app._verbose != 'fft':
+    if app._verbose == 'file':
+        print png_file,"\t",lambda_sum/len(lambda_array),"um"
+    if app._verbose != 'fft' and app._verbose != 'file':
         print "=========================================================="
         print "Image File:\t\t"+png_file
         print "Starting (x,y):\t\t("+str(x_start)+","+str(y_start)+") pixels"
         print "Ending (x,y):\t\t("+str(x_stop)+","+str(y_stop)+") pixels"
         print "Mask size:\t\t"+str(app._mask)
-        print "Sample tolerance:\t"+str(app._tolerance)
-        print "Wrinkle size range:\t"+w_min+" to "+w_max+" pixels"
+        print "Maximum intensity:\t"+str(app._tolerance)
         print "Approx wavelength\t"+str(lambda_sum/len(lambda_array))+" microns"
         print "=========================================================="
 
