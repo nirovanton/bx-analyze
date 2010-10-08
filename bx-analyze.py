@@ -120,7 +120,7 @@ if __name__ == "__main__":
     pixel_ratio = (1/(3.552))  # microns/pixel
     wrinkle_count = 0
     png_file = png.Reader(app._image)
-    width, height, iterable, something_else = png_file.read()
+    width, height, iterable, image_info = png_file.read()
     image_array = numpy.vstack(itertools.imap(numpy.uint8, iterable))
 
 
@@ -226,7 +226,7 @@ if __name__ == "__main__":
                     pdms_count = 0
                 row_array.append(int(image_array[y_index][x_index]))
             x_index += 1
-      
+       
         if white_count >= .75*(x_stop-x_start) and app._verbose != 'file':
             print "row:"+str(y_index)+" Row analysis aborted, not enough data for an accurate answer."
             y_index += 1
@@ -268,6 +268,10 @@ if __name__ == "__main__":
                if final_dict[key] < final_dict[key-1] \
                and final_dict[key] < final_dict[key+1]:
                    success = True
+               if final_dict[key] == final_dict[key-1]\
+               and final_dict[key] < final_dict[key+1]\
+               and final_dict[key] < final_dict[key-2]:
+                   success = True
             if success:
                 wrinkle_count += 1
                 if app._verbose == 'high':
@@ -308,13 +312,16 @@ if __name__ == "__main__":
     for wavelength in lambda_array:
         lambda_sum += wavelength
     if app._verbose == 'file':
-        print png_file,"\t",lambda_sum/len(lambda_array),"um"
+        if app._fft == '':
+            print png_file,"\t",lambda_sum/len(lambda_array),"um\ttol:",tolerance
+        else:
+            print png_file,"\t",lambda_sum/len(lambda_array),"um\tfft:",app._fft
     if app._verbose != 'plot' and app._verbose != 'file':
         print "=========================================================="
         print "Image File:\t\t"+png_file
         if fft:
-            print "FFT tolerance:\t"+str(tolerance)
-            print "FFT mask value:\t"+str(fft_mask)
+            print "FFT tolerance:\t\t"+str(tolerance)
+            print "FFT mask value:\t\t"+str(fft_mask)
         else:
             print "Sample tolerance:\t"+str(tolerance)
         print "Starting (x,y):\t\t("+str(x_start)+","+str(y_start)+") pixels"
