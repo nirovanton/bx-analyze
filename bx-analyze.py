@@ -260,6 +260,7 @@ if __name__ == "__main__":
         
         ###    Scanning the pixel array for wrinkles
         success = False
+        ind = 1
         avg = 0
         for key in final_dict.keys():
             if key > 1 and key < (width-1) \
@@ -275,8 +276,10 @@ if __name__ == "__main__":
             if success:
                 wrinkle_count += 1
                 if app._verbose == 'high':
-                    print "(x,y): ("+ str(key)+","+ str(y_index)+")"
+                    print ind, "\t(x,y): ("+ str(key)+","+ str(y_index)+")"
+                    ind += 1
             success = False
+        ind = 1
 
         
         ###    FFT verbosity output
